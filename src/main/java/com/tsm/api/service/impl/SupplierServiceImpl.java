@@ -20,6 +20,7 @@ public class SupplierServiceImpl implements SupplierService {
 
     final SupplierRepository supplierRepository;
     private final CommerceServiceImpl commerceService;
+    private final CashRegisterServiceImpl cashRegisterService; // FIX: agregado para registrar movimiento de caja
 
     @Override
     @Transactional
@@ -74,11 +75,25 @@ public class SupplierServiceImpl implements SupplierService {
     @Transactional
     public SupplierResponse registerPayment(UUID supplierId, UUID branchId, PaymentRequest request) {
         Supplier supplier = findById(supplierId);
+
         if (supplier.getDebt().compareTo(request.getAmount()) < 0) {
             throw new BusinessException("El pago supera la deuda con el proveedor");
         }
+
         supplier.setDebt(supplier.getDebt().subtract(request.getAmount()));
-        return toResponse(supplierRepository.save(supplier));
+        supplierRepository.save(supplier);
+
+        // FIX: registrar egreso en caja (nosotros le pagamos al proveedor)
+        // el monto es negativo porque es una salida de dinero
+        CashRegister cashRegister = cashRegisterService.findOpenByBranchId(branchId);
+        cashRegisterService.registerMovement(
+                cashRegister,
+                CashMovementType.SUPPLIER_PAYMENT,
+                request.getAmount().negate(),
+                request.getDescription() != null ? request.getDescription() : "Pago a proveedor",
+                supplierId);
+
+        return toResponse(supplier);
     }
 
     @Override

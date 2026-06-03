@@ -8,6 +8,7 @@ import com.tsm.api.exception.BusinessException;
 import com.tsm.api.exception.ResourceNotFoundException;
 import com.tsm.api.repository.CustomerAccountRepository;
 import com.tsm.api.repository.SaleRepository;
+import com.tsm.api.repository.StockMovementRepository;
 import com.tsm.api.repository.StockRepository;
 import com.tsm.api.service.SaleService;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class SaleServiceImpl implements SaleService {
 
     private final SaleRepository saleRepository;
     private final StockRepository stockRepository;
+    private final StockMovementRepository stockMovementRepository; // FIX: faltaba esta dependencia
     private final CustomerAccountRepository customerAccountRepository;
     private final BranchServiceImpl branchService;
     private final UserServiceImpl userService;
@@ -37,28 +39,31 @@ public class SaleServiceImpl implements SaleService {
         Branch branch = branchService.findById(branchId);
         User user = userService.findById(userId);
 
-        // validar caja abierta
         CashRegister cashRegister = cashRegisterService.findOpenByBranchId(branchId);
 
-        // validar cliente si se especifica
         Customer customer = null;
         if (request.getCustomerId() != null) {
             customer = customerService.findById(request.getCustomerId());
         }
 
-        // validar que cuenta corriente exista si el pago es fiado
         if (request.getPaymentType() == PaymentType.ACCOUNT && customer == null) {
             throw new BusinessException("Se requiere un cliente para ventas en cuenta corriente");
         }
 
-        // construir items y calcular total
         List<SaleItem> items = new ArrayList<>();
         BigDecimal total = BigDecimal.ZERO;
 
         for (var itemRequest : request.getItems()) {
             ProductVariant variant = productVariantService.findById(itemRequest.getProductVariantId());
 
-            // verificar stock
+            // FIX: validar que la variante pertenece al mismo comercio que la sucursal
+            if (!variant.getProduct().getCommerce().getId()
+                    .equals(branch.getCommerce().getId())) {
+                throw new BusinessException(
+                        "El producto '" + variant.getProduct().getName()
+                                + "' no pertenece a este comercio");
+            }
+
             Stock stock = stockRepository
                     .findByBranchIdAndProductVariantId(branchId, variant.getId())
                     .orElseThrow(() -> new BusinessException(
@@ -81,21 +86,21 @@ public class SaleServiceImpl implements SaleService {
             items.add(item);
             total = total.add(subtotal);
 
-            // descontar stock
-            stock.setQuantity(stock.getQuantity() - itemRequest.getQuantity());
+            int newQuantity = stock.getQuantity() - itemRequest.getQuantity();
+            stock.setQuantity(newQuantity);
             stockRepository.save(stock);
 
-            // registrar movimiento de stock
+            // FIX: se construía el movimiento pero nunca se guardaba
             StockMovement movement = StockMovement.builder()
                     .stock(stock)
                     .type(StockMovementType.SALE)
                     .quantity(-itemRequest.getQuantity())
-                    .quantityAfter(stock.getQuantity())
+                    .quantityAfter(newQuantity)
                     .note("Venta registrada")
                     .build();
+            stockMovementRepository.save(movement);
         }
 
-        // crear venta
         Sale sale = Sale.builder()
                 .branch(branch)
                 .cashRegister(cashRegister)
@@ -110,11 +115,13 @@ public class SaleServiceImpl implements SaleService {
         items.forEach(item -> item.setSale(sale));
         saleRepository.save(sale);
 
-        // impactar en caja
-        cashRegisterService.registerMovement(cashRegister, CashMovementType.SALE,
-                total, "Venta", sale.getId());
+        cashRegisterService.registerMovement(
+                cashRegister,
+                CashMovementType.SALE,
+                total,
+                "Venta",
+                sale.getId());
 
-        // impactar en cuenta corriente si es fiado
         if (request.getPaymentType() == PaymentType.ACCOUNT) {
             CustomerAccount account = customerAccountRepository
                     .findByCustomerId(customer.getId())
@@ -185,4 +192,5 @@ public class SaleServiceImpl implements SaleService {
                 .createdAt(sale.getCreatedAt())
                 .build();
     }
+
 }

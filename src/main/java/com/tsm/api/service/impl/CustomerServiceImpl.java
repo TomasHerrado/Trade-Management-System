@@ -24,6 +24,7 @@ public class CustomerServiceImpl implements CustomerService {
     private final CustomerAccountRepository customerAccountRepository;
     private final CommerceServiceImpl commerceService;
     private final BranchServiceImpl branchService;
+    private final CashRegisterServiceImpl cashRegisterService; // FIX: agregado para registrar movimiento de caja
 
     @Override
     @Transactional
@@ -90,11 +91,24 @@ public class CustomerServiceImpl implements CustomerService {
     public CustomerAccountResponse registerPayment(UUID customerId, UUID branchId, PaymentRequest request) {
         CustomerAccount account = customerAccountRepository.findByCustomerId(customerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cuenta corriente no encontrada"));
+
         if (account.getBalance().compareTo(request.getAmount()) < 0) {
             throw new BusinessException("El pago supera la deuda del cliente");
         }
+
         account.setBalance(account.getBalance().subtract(request.getAmount()));
-        return toAccountResponse(customerAccountRepository.save(account));
+        customerAccountRepository.save(account);
+
+        // FIX: registrar ingreso en caja (el cliente paga su deuda)
+        CashRegister cashRegister = cashRegisterService.findOpenByBranchId(branchId);
+        cashRegisterService.registerMovement(
+                cashRegister,
+                CashMovementType.CUSTOMER_PAYMENT,
+                request.getAmount(),
+                request.getDescription() != null ? request.getDescription() : "Pago de cliente",
+                customerId);
+
+        return toAccountResponse(account);
     }
 
     @Override
