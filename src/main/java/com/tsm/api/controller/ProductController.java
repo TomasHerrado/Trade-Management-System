@@ -32,7 +32,7 @@ public class ProductController {
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody ProductRequest request) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
         return ResponseEntity.status(201).body(productService.create(commerceId, request));
     }
 
@@ -62,7 +62,7 @@ public class ProductController {
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody ProductRequest request) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
         return ResponseEntity.ok(productService.update(id, request));
     }
 
@@ -72,7 +72,7 @@ public class ProductController {
             @PathVariable UUID id,
             @RequestHeader("Authorization") String authHeader) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
         productService.deactivate(id);
         return ResponseEntity.noContent().build();
     }

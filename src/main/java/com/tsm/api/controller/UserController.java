@@ -8,6 +8,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.tsm.api.entity.UserRole;
+import com.tsm.api.repository.UserCommerceRepository;
+import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
@@ -41,5 +45,21 @@ public class UserController {
         java.util.UUID userId = jwtService.extractUserId(token);
         userService.deactivate(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/me/role")
+    public ResponseEntity<Map<String, String>> getMyRole(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam UUID commerceId) {
+        String token = authHeader.substring(7);
+        UUID userId = jwtService.extractUserId(token);
+        UserRole role = UserCommerceRepository
+                .findByUserIdAndCommerceId(userId, commerceId)
+                .map(uc -> uc.getRole())
+                .orElse(null);
+        if (role == null) {
+            return ResponseEntity.status(403).build();
+        }
+        return ResponseEntity.ok(Map.of("role", role.name()));
     }
 }

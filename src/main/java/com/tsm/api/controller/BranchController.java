@@ -26,7 +26,7 @@ public class BranchController {
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody BranchRequest request) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwner(userId, commerceId);
         return ResponseEntity.status(201).body(branchService.create(commerceId, request));
     }
 
@@ -56,7 +56,7 @@ public class BranchController {
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody BranchRequest request) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwner(userId, commerceId);
         return ResponseEntity.ok(branchService.update(id, request));
     }
 
@@ -66,7 +66,7 @@ public class BranchController {
             @PathVariable UUID id,
             @RequestHeader("Authorization") String authHeader) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwner(userId, commerceId);
         branchService.deactivate(id);
         return ResponseEntity.noContent().build();
     }

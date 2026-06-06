@@ -26,7 +26,7 @@ public class CategoryController {
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody CategoryRequest request) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
         return ResponseEntity.status(201).body(categoryService.create(commerceId, request));
     }
 
@@ -56,7 +56,7 @@ public class CategoryController {
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody CategoryRequest request) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
         return ResponseEntity.ok(categoryService.update(id, request));
     }
 
@@ -66,7 +66,7 @@ public class CategoryController {
             @PathVariable UUID id,
             @RequestHeader("Authorization") String authHeader) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
         categoryService.delete(id);
         return ResponseEntity.noContent().build();
     }

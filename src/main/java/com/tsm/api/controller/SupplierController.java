@@ -28,7 +28,7 @@ public class SupplierController {
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody SupplierRequest request) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
         return ResponseEntity.status(201).body(supplierService.create(commerceId, request));
     }
 
@@ -58,7 +58,7 @@ public class SupplierController {
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody SupplierRequest request) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
         return ResponseEntity.ok(supplierService.update(id, request));
     }
 
@@ -68,7 +68,7 @@ public class SupplierController {
             @PathVariable UUID id,
             @RequestHeader("Authorization") String authHeader) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
         supplierService.deactivate(id);
         return ResponseEntity.noContent().build();
     }
@@ -81,7 +81,7 @@ public class SupplierController {
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody PaymentRequest request) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
         return ResponseEntity.ok(supplierService.registerPayment(id, branchId, request));
     }
 
