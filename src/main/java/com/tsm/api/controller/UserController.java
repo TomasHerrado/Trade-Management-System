@@ -20,6 +20,7 @@ public class UserController {
     private final UserService userService;
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final UserCommerceRepository userCommerceRepository;
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getMe(
@@ -53,7 +54,7 @@ public class UserController {
             @RequestParam UUID commerceId) {
         String token = authHeader.substring(7);
         UUID userId = jwtService.extractUserId(token);
-        UserRole role = UserCommerceRepository
+        UserRole role = userCommerceRepository
                 .findByUserIdAndCommerceId(userId, commerceId)
                 .map(uc -> uc.getRole())
                 .orElse(null);
