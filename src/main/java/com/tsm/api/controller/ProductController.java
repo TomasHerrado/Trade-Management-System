@@ -18,7 +18,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/commerces/{commerceId}/products")
 @RequiredArgsConstructor
-
 public class ProductController {
 
     private final ProductService productService;
@@ -26,6 +25,7 @@ public class ProductController {
     private final JwtService jwtService;
     private final AuthorizationService authorizationService;
 
+    // Solo OWNER y ADMIN pueden crear productos
     @PostMapping
     public ResponseEntity<ProductResponse> create(
             @PathVariable UUID commerceId,
@@ -36,6 +36,7 @@ public class ProductController {
         return ResponseEntity.status(201).body(productService.create(commerceId, request));
     }
 
+    // Cualquier miembro con acceso al comercio puede listar productos
     @GetMapping
     public ResponseEntity<List<ProductResponse>> getByCommerce(
             @PathVariable UUID commerceId,
@@ -45,6 +46,7 @@ public class ProductController {
         return ResponseEntity.ok(productService.getByCommerceId(commerceId));
     }
 
+    // Cualquier miembro con acceso al comercio puede ver un producto
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getById(
             @PathVariable UUID commerceId,
@@ -55,6 +57,7 @@ public class ProductController {
         return ResponseEntity.ok(productService.getById(id));
     }
 
+    // Solo OWNER y ADMIN pueden editar productos
     @PutMapping("/{id}")
     public ResponseEntity<ProductResponse> update(
             @PathVariable UUID commerceId,
@@ -66,6 +69,7 @@ public class ProductController {
         return ResponseEntity.ok(productService.update(id, request));
     }
 
+    // Solo OWNER y ADMIN pueden desactivar productos
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(
             @PathVariable UUID commerceId,
@@ -79,6 +83,7 @@ public class ProductController {
 
     // ── Variantes ──────────────────────────────────────────
 
+    // Solo OWNER y ADMIN pueden crear variantes
     @PostMapping("/{productId}/variants")
     public ResponseEntity<ProductVariantResponse> createVariant(
             @PathVariable UUID commerceId,
@@ -86,10 +91,11 @@ public class ProductController {
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody ProductVariantRequest request) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
         return ResponseEntity.status(201).body(productVariantService.create(productId, request));
     }
 
+    // Cualquier miembro con acceso al comercio puede listar variantes (para armar una venta)
     @GetMapping("/{productId}/variants")
     public ResponseEntity<List<ProductVariantResponse>> getVariants(
             @PathVariable UUID commerceId,
@@ -100,6 +106,7 @@ public class ProductController {
         return ResponseEntity.ok(productVariantService.getByProductId(productId));
     }
 
+    // Cualquier miembro con acceso al comercio puede ver una variante
     @GetMapping("/{productId}/variants/{variantId}")
     public ResponseEntity<ProductVariantResponse> getVariantById(
             @PathVariable UUID commerceId,
@@ -110,6 +117,7 @@ public class ProductController {
         return ResponseEntity.ok(productVariantService.getById(variantId));
     }
 
+    // Solo OWNER y ADMIN pueden editar variantes (incluye precios)
     @PutMapping("/{productId}/variants/{variantId}")
     public ResponseEntity<ProductVariantResponse> updateVariant(
             @PathVariable UUID commerceId,
@@ -117,19 +125,19 @@ public class ProductController {
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody ProductVariantRequest request) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
         return ResponseEntity.ok(productVariantService.update(variantId, request));
     }
 
+    // Solo OWNER y ADMIN pueden desactivar variantes
     @DeleteMapping("/{productId}/variants/{variantId}")
     public ResponseEntity<Void> deactivateVariant(
             @PathVariable UUID commerceId,
             @PathVariable UUID variantId,
             @RequestHeader("Authorization") String authHeader) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateCommerceAccess(userId, commerceId);
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
         productVariantService.deactivate(variantId);
         return ResponseEntity.noContent().build();
     }
-
 }

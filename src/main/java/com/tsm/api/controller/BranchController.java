@@ -20,16 +20,18 @@ public class BranchController {
     private final JwtService jwtService;
     private final AuthorizationService authorizationService;
 
+    // OWNER y ADMIN pueden crear sucursales en su comercio
     @PostMapping
     public ResponseEntity<BranchResponse> create(
             @PathVariable UUID commerceId,
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody BranchRequest request) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateOwner(userId, commerceId);
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
         return ResponseEntity.status(201).body(branchService.create(commerceId, request));
     }
 
+    // Cualquier miembro con acceso al comercio puede listar sucursales
     @GetMapping
     public ResponseEntity<List<BranchResponse>> getByCommerce(
             @PathVariable UUID commerceId,
@@ -39,6 +41,7 @@ public class BranchController {
         return ResponseEntity.ok(branchService.getByCommerceId(commerceId));
     }
 
+    // Cualquier miembro con acceso al comercio puede ver una sucursal
     @GetMapping("/{id}")
     public ResponseEntity<BranchResponse> getById(
             @PathVariable UUID commerceId,
@@ -49,6 +52,7 @@ public class BranchController {
         return ResponseEntity.ok(branchService.getById(id));
     }
 
+    // OWNER y ADMIN pueden editar sucursales
     @PutMapping("/{id}")
     public ResponseEntity<BranchResponse> update(
             @PathVariable UUID commerceId,
@@ -56,10 +60,11 @@ public class BranchController {
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody BranchRequest request) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateOwner(userId, commerceId);
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
         return ResponseEntity.ok(branchService.update(id, request));
     }
 
+    // Solo OWNER puede eliminar sucursales
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(
             @PathVariable UUID commerceId,
@@ -70,5 +75,4 @@ public class BranchController {
         branchService.deactivate(id);
         return ResponseEntity.noContent().build();
     }
-
 }

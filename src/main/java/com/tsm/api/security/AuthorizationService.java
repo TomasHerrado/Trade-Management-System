@@ -13,5 +13,7 @@ public interface AuthorizationService {
 
     void validateOwnerOrAdmin(UUID userId, UUID commerceId);
 
+    void validateOwnerOrAdminForBranch(UUID userId, UUID branchId);
+
     UserRole getUserRole(UUID userId, UUID commerceId);
 }

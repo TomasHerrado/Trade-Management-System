@@ -23,16 +23,18 @@ public class StockController {
     private final JwtService jwtService;
     private final AuthorizationService authorizationService;
 
+    // Solo OWNER y ADMIN pueden crear o actualizar stock manualmente
     @PostMapping
     public ResponseEntity<StockResponse> createOrUpdate(
             @PathVariable UUID branchId,
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody StockRequest request) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateBranchAccess(userId, branchId);
+        authorizationService.validateOwnerOrAdminForBranch(userId, branchId);
         return ResponseEntity.ok(stockService.createOrUpdate(branchId, request));
     }
 
+    // OWNER, ADMIN y EMPLOYEE pueden consultar el stock de su sucursal
     @GetMapping
     public ResponseEntity<List<StockResponse>> getByBranch(
             @PathVariable UUID branchId,
@@ -42,6 +44,7 @@ public class StockController {
         return ResponseEntity.ok(stockService.getByBranchId(branchId));
     }
 
+    // OWNER, ADMIN y EMPLOYEE pueden consultar alertas de stock bajo
     @GetMapping("/low")
     public ResponseEntity<List<StockResponse>> getLowStock(
             @PathVariable UUID branchId,
@@ -51,6 +54,7 @@ public class StockController {
         return ResponseEntity.ok(stockService.getLowStockByBranchId(branchId));
     }
 
+    // OWNER, ADMIN y EMPLOYEE pueden consultar el stock de una variante específica
     @GetMapping("/{variantId}")
     public ResponseEntity<StockResponse> getByVariant(
             @PathVariable UUID branchId,
@@ -61,6 +65,7 @@ public class StockController {
         return ResponseEntity.ok(stockService.getByBranchAndVariant(branchId, variantId));
     }
 
+    // Solo OWNER y ADMIN pueden realizar ajustes de stock
     @PostMapping("/{variantId}/adjust")
     public ResponseEntity<StockMovementResponse> adjust(
             @PathVariable UUID branchId,
@@ -68,10 +73,11 @@ public class StockController {
             @RequestHeader("Authorization") String authHeader,
             @Valid @RequestBody StockAdjustmentRequest request) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
-        authorizationService.validateBranchAccess(userId, branchId);
+        authorizationService.validateOwnerOrAdminForBranch(userId, branchId);
         return ResponseEntity.ok(stockService.adjust(branchId, variantId, request));
     }
 
+    // OWNER, ADMIN y EMPLOYEE pueden ver los movimientos de stock (solo consulta)
     @GetMapping("/{variantId}/movements")
     public ResponseEntity<List<StockMovementResponse>> getMovements(
             @PathVariable UUID branchId,
@@ -81,5 +87,4 @@ public class StockController {
         authorizationService.validateBranchAccess(userId, branchId);
         return ResponseEntity.ok(stockService.getMovements(branchId, variantId));
     }
-
 }
