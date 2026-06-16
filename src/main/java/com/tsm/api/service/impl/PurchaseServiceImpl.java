@@ -90,9 +90,8 @@ public class PurchaseServiceImpl implements PurchaseService {
         purchaseRepository.save(purchase);
 
         // sumar deuda al proveedor
-        supplier.setDebt(supplier.getDebt().add(total));
-        supplierService.supplierRepository.save(supplier);
 
+        supplierService.addDebt(supplier.getId(), total);
         return toResponse(purchase);
     }
 

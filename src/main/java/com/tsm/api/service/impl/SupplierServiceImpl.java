@@ -11,6 +11,8 @@ import com.tsm.api.service.SupplierService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -121,5 +123,11 @@ public class SupplierServiceImpl implements SupplierService {
                 .status(supplier.getStatus())
                 .createdAt(supplier.getCreatedAt())
                 .build();
+    }
+    @Transactional
+    public void addDebt(UUID supplierId, BigDecimal amount) {
+        Supplier supplier = findById(supplierId);
+        supplier.setDebt(supplier.getDebt().add(amount));
+        supplierRepository.save(supplier);
     }
 }
