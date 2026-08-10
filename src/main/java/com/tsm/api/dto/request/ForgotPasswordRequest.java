@@ -1,0 +1,13 @@
+package com.tsm.api.dto.request;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.*;
+
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
+@Builder
+public class ForgotPasswordRequest {
+    @NotBlank(message = "El email es obligatorio")
+    @Email(message = "El email no es válido")
+    private String email;
+}
