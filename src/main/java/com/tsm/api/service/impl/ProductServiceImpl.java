@@ -3,8 +3,9 @@ package com.tsm.api.service.impl;
 import com.tsm.api.dto.request.ProductRequest;
 import com.tsm.api.dto.response.ProductResponse;
 import com.tsm.api.entity.*;
+import com.tsm.api.exception.BusinessException;
 import com.tsm.api.exception.ResourceNotFoundException;
-import com.tsm.api.repository.ProductRepository;
+import com.tsm.api.repository.*;
 import com.tsm.api.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,12 +18,20 @@ import java.util.UUID;
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
+    private final ProductVariantRepository productVariantRepository;
+    private final StockRepository stockRepository;
+    private final StockMovementRepository stockMovementRepository;
+    private final SaleItemRepository saleItemRepository;
+    private final PurchaseItemRepository purchaseItemRepository;
     private final CommerceServiceImpl commerceService;
     private final CategoryServiceImpl categoryService;
 
     @Override
     @Transactional
     public ProductResponse create(UUID commerceId, ProductRequest request) {
+        if (productRepository.existsByNameAndCommerceId(request.getName(), commerceId)) {
+            throw new BusinessException("Ya existe un producto con ese nombre");
+        }
         Commerce commerce = commerceService.findById(commerceId);
         Category category = null;
         if (request.getCategoryId() != null) {
@@ -55,6 +64,12 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductResponse update(UUID id, ProductRequest request) {
         Product product = findById(id);
+        UUID commerceId = product.getCommerce().getId();
+
+        if (productRepository.existsByNameAndCommerceIdAndIdNot(request.getName(), commerceId, id)) {
+            throw new BusinessException("Ya existe un producto con ese nombre");
+        }
+
         Category category = null;
         if (request.getCategoryId() != null) {
             category = categoryService.findById(request.getCategoryId());
@@ -72,6 +87,42 @@ public class ProductServiceImpl implements ProductService {
         Product product = findById(id);
         product.setStatus(ProductStatus.INACTIVE);
         productRepository.save(product);
+    }
+
+    @Override
+    @Transactional
+    public ProductResponse activate(UUID id) {
+        Product product = findById(id);
+        product.setStatus(ProductStatus.ACTIVE);
+        return toResponse(productRepository.save(product));
+    }
+
+    @Override
+    @Transactional
+    public void delete(UUID id) {
+        Product product = findById(id);
+        List<ProductVariant> variants = productVariantRepository.findByProductId(id);
+
+        for (ProductVariant variant : variants) {
+            boolean hasSales = saleItemRepository.existsByProductVariantId(variant.getId());
+            boolean hasPurchases = purchaseItemRepository.existsByProductVariantId(variant.getId());
+            if (hasSales || hasPurchases) {
+                throw new BusinessException(
+                        "No se puede eliminar el producto porque tiene ventas o compras registradas. " +
+                                "Podés desactivarlo en su lugar."
+                );
+            }
+        }
+
+        for (ProductVariant variant : variants) {
+            List<Stock> stocks = stockRepository.findByProductVariantId(variant.getId());
+            for (Stock stock : stocks) {
+                stockMovementRepository.deleteAll(stockMovementRepository.findByStockId(stock.getId()));
+            }
+            stockRepository.deleteAll(stocks);
+        }
+        productVariantRepository.deleteAll(variants);
+        productRepository.delete(product);
     }
 
     public Product findById(UUID id) {
@@ -92,4 +143,5 @@ public class ProductServiceImpl implements ProductService {
                 .createdAt(product.getCreatedAt())
                 .build();
     }
+
 }

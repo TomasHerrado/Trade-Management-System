@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface PurchaseItemRepository extends JpaRepository<PurchaseItem, UUID>{
     List<PurchaseItem> findByPurchaseId(UUID purchaseId);
     List<PurchaseItem> findByProductVariantId(UUID productVariantId);
+    boolean existsByProductVariantId(UUID productVariantId);
 }

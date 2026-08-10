@@ -9,4 +9,6 @@ public interface ProductVariantService {
     List<ProductVariantResponse> getByProductId(UUID productId);
     ProductVariantResponse update(UUID id, ProductVariantRequest request);
     void deactivate(UUID id);
+    ProductVariantResponse activate(UUID id);
+    void delete(UUID id);
 }

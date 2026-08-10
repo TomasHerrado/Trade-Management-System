@@ -11,8 +11,8 @@ import java.util.UUID;
 public interface StockRepository extends JpaRepository<Stock, UUID> {
     List<Stock> findByBranchId(UUID branchId);
     Optional<Stock> findByBranchIdAndProductVariantId(UUID branchId, UUID productVariantId);
+    List<Stock> findByProductVariantId(UUID productVariantId); // NUEVO
 
-    // alertas de stock bajo
     @Query("SELECT s FROM Stock s WHERE s.branch.id = :branchId AND s.quantity <= s.minQuantity")
     List<Stock> findLowStockByBranchId(UUID branchId);
 }

@@ -9,4 +9,6 @@ public interface ProductService {
     List<ProductResponse> getByCommerceId(UUID commerceId);
     ProductResponse update(UUID id, ProductRequest request);
     void deactivate(UUID id);
+    ProductResponse activate(UUID id);
+    void delete(UUID id);
 }

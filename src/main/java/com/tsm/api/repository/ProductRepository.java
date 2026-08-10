@@ -11,4 +11,6 @@ public interface ProductRepository extends JpaRepository<Product, UUID>{
     List<Product> findByCommerceId(UUID commerceId);
     List<Product> findByCommerceIdAndStatus(UUID commerceId, ProductStatus status);
     List<Product> findByCategoryId(UUID categoryId);
+    boolean existsByNameAndCommerceId(String name, UUID commerceId);
+    boolean existsByNameAndCommerceIdAndIdNot(String name, UUID commerceId, UUID id);
 }

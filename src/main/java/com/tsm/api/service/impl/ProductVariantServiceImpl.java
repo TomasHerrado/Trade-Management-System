@@ -5,7 +5,7 @@ import com.tsm.api.dto.response.ProductVariantResponse;
 import com.tsm.api.entity.*;
 import com.tsm.api.exception.BusinessException;
 import com.tsm.api.exception.ResourceNotFoundException;
-import com.tsm.api.repository.ProductVariantRepository;
+import com.tsm.api.repository.*;
 import com.tsm.api.service.ProductVariantService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +19,10 @@ public class ProductVariantServiceImpl implements ProductVariantService {
 
     private final ProductVariantRepository productVariantRepository;
     private final ProductServiceImpl productService;
+    private final StockRepository stockRepository;
+    private final StockMovementRepository stockMovementRepository;
+    private final SaleItemRepository saleItemRepository;
+    private final PurchaseItemRepository purchaseItemRepository;
 
     @Override
     @Transactional
@@ -71,6 +75,37 @@ public class ProductVariantServiceImpl implements ProductVariantService {
         ProductVariant variant = findById(id);
         variant.setStatus(ProductStatus.INACTIVE);
         productVariantRepository.save(variant);
+    }
+
+    @Override
+    @Transactional
+    public ProductVariantResponse activate(UUID id) {
+        ProductVariant variant = findById(id);
+        variant.setStatus(ProductStatus.ACTIVE);
+        return toResponse(productVariantRepository.save(variant));
+    }
+
+    @Override
+    @Transactional
+    public void delete(UUID id) {
+        ProductVariant variant = findById(id);
+
+        boolean hasSales = saleItemRepository.existsByProductVariantId(id);
+        boolean hasPurchases = purchaseItemRepository.existsByProductVariantId(id);
+        if (hasSales || hasPurchases) {
+            throw new BusinessException(
+                    "No se puede eliminar la variante porque tiene ventas o compras registradas. " +
+                            "Podés desactivarla en su lugar."
+            );
+        }
+
+        List<Stock> stocks = stockRepository.findByProductVariantId(id);
+        for (Stock stock : stocks) {
+            stockMovementRepository.deleteAll(stockMovementRepository.findByStockId(stock.getId()));
+        }
+        stockRepository.deleteAll(stocks);
+
+        productVariantRepository.delete(variant);
     }
 
     public ProductVariant findById(UUID id) {

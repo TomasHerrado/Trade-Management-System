@@ -81,6 +81,27 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{id}/activate")
+    public ResponseEntity<ProductResponse> activate(
+            @PathVariable UUID commerceId,
+            @PathVariable UUID id,
+            @RequestHeader("Authorization") String authHeader) {
+        UUID userId = jwtService.extractUserId(authHeader.substring(7));
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
+        return ResponseEntity.ok(productService.activate(id));
+    }
+
+    @DeleteMapping("/{id}/permanent")
+    public ResponseEntity<Void> delete(
+            @PathVariable UUID commerceId,
+            @PathVariable UUID id,
+            @RequestHeader("Authorization") String authHeader) {
+        UUID userId = jwtService.extractUserId(authHeader.substring(7));
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
+        productService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // ── Variantes ──────────────────────────────────────────
 
     // Solo OWNER y ADMIN pueden crear variantes
@@ -138,6 +159,28 @@ public class ProductController {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
         authorizationService.validateOwnerOrAdmin(userId, commerceId);
         productVariantService.deactivate(variantId);
+        return ResponseEntity.noContent().build();
+    }
+    // Solo OWNER y ADMIN pueden reactivar variantes
+    @PatchMapping("/{productId}/variants/{variantId}/activate")
+    public ResponseEntity<ProductVariantResponse> activateVariant(
+            @PathVariable UUID commerceId,
+            @PathVariable UUID variantId,
+            @RequestHeader("Authorization") String authHeader) {
+        UUID userId = jwtService.extractUserId(authHeader.substring(7));
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
+        return ResponseEntity.ok(productVariantService.activate(variantId));
+    }
+
+    // Solo OWNER y ADMIN pueden eliminar variantes definitivamente
+    @DeleteMapping("/{productId}/variants/{variantId}/permanent")
+    public ResponseEntity<Void> deleteVariant(
+            @PathVariable UUID commerceId,
+            @PathVariable UUID variantId,
+            @RequestHeader("Authorization") String authHeader) {
+        UUID userId = jwtService.extractUserId(authHeader.substring(7));
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
+        productVariantService.delete(variantId);
         return ResponseEntity.noContent().build();
     }
 }
