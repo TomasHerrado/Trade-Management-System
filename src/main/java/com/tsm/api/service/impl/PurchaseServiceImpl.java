@@ -28,6 +28,7 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final UserServiceImpl userService;
     private final SupplierServiceImpl supplierService;
     private final ProductVariantServiceImpl productVariantService;
+    private final CashRegisterServiceImpl cashRegisterService; // NUEVO: para registrar movimiento de caja
 
     @Override
     @Transactional
@@ -82,6 +83,7 @@ public class PurchaseServiceImpl implements PurchaseService {
                 .supplier(supplier)
                 .user(user)
                 .total(total)
+                .paymentType(request.getPaymentType())
                 .status(PurchaseStatus.COMPLETED)
                 .note(request.getNote())
                 .items(items)
@@ -89,9 +91,22 @@ public class PurchaseServiceImpl implements PurchaseService {
         items.forEach(item -> item.setPurchase(purchase));
         purchaseRepository.save(purchase);
 
-        // sumar deuda al proveedor
+        // FIX: solo suma deuda si la compra es a cuenta corriente (ACCOUNT).
+        // Antes se sumaba siempre, sin importar el paymentType.
+        if (request.getPaymentType() == PaymentType.ACCOUNT) {
+            supplierService.addDebt(supplier.getId(), total);
+        } else {
+            // FIX: para compras que sí se pagan al momento (CASH/CARD/TRANSFER/MIXED),
+            // registramos la salida de dinero en la caja de la sucursal.
+            CashRegister cashRegister = cashRegisterService.findOpenByBranchId(branchId);
+            cashRegisterService.registerMovement(
+                    cashRegister,
+                    CashMovementType.SUPPLIER_PAYMENT,
+                    total.negate(),
+                    "Compra a proveedor - " + supplier.getName(),
+                    purchase.getId());
+        }
 
-        supplierService.addDebt(supplier.getId(), total);
         return toResponse(purchase);
     }
 
@@ -140,6 +155,7 @@ public class PurchaseServiceImpl implements PurchaseService {
                 .supplierName(purchase.getSupplier().getName())
                 .userName(purchase.getUser().getFirstName() + " " + purchase.getUser().getLastName())
                 .total(purchase.getTotal())
+                .paymentType(purchase.getPaymentType())
                 .status(purchase.getStatus())
                 .note(purchase.getNote())
                 .items(itemResponses)

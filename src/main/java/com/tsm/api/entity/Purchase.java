@@ -32,6 +32,10 @@ public class Purchase {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal total;
 
+    @Column
+    @Enumerated(EnumType.STRING)
+    private PaymentType paymentType;
+
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private PurchaseStatus status;

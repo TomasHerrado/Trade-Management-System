@@ -1,4 +1,5 @@
 package com.tsm.api.dto.response;
+import com.tsm.api.entity.PaymentType;
 import com.tsm.api.entity.PurchaseStatus;
 import lombok.*;
 import java.math.BigDecimal;
@@ -17,6 +18,7 @@ public class PurchaseResponse {
     private String supplierName;
     private String userName;
     private BigDecimal total;
+    private PaymentType paymentType;
     private PurchaseStatus status;
     private String note;
     private List<PurchaseItemResponse> items;
