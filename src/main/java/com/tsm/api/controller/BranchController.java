@@ -64,7 +64,7 @@ public class BranchController {
         return ResponseEntity.ok(branchService.update(id, request));
     }
 
-    // Solo OWNER puede eliminar sucursales
+    // Solo OWNER puede desactivar sucursales
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deactivate(
             @PathVariable UUID commerceId,
@@ -73,6 +73,29 @@ public class BranchController {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
         authorizationService.validateOwner(userId, commerceId);
         branchService.deactivate(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Solo OWNER puede reactivar sucursales
+    @PatchMapping("/{id}/activate")
+    public ResponseEntity<BranchResponse> activate(
+            @PathVariable UUID commerceId,
+            @PathVariable UUID id,
+            @RequestHeader("Authorization") String authHeader) {
+        UUID userId = jwtService.extractUserId(authHeader.substring(7));
+        authorizationService.validateOwner(userId, commerceId);
+        return ResponseEntity.ok(branchService.activate(id));
+    }
+
+    // Solo OWNER puede eliminar sucursales definitivamente
+    @DeleteMapping("/{id}/permanent")
+    public ResponseEntity<Void> delete(
+            @PathVariable UUID commerceId,
+            @PathVariable UUID id,
+            @RequestHeader("Authorization") String authHeader) {
+        UUID userId = jwtService.extractUserId(authHeader.substring(7));
+        authorizationService.validateOwner(userId, commerceId);
+        branchService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

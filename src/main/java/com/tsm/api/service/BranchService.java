@@ -9,4 +9,6 @@ public interface BranchService {
     List<BranchResponse> getByCommerceId(UUID commerceId);
     BranchResponse update(UUID id, BranchRequest request);
     void deactivate(UUID id);
+    BranchResponse activate(UUID id);
+    void delete(UUID id);
 }

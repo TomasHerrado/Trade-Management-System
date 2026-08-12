@@ -12,4 +12,5 @@ public interface SaleRepository extends JpaRepository<Sale, UUID>{
     List<Sale> findByBranchIdAndStatus(UUID branchId, SaleStatus status);
     List<Sale> findByCustomerId(UUID customerId);
     List<Sale> findByCashRegisterId(UUID cashRegisterId);
+    boolean existsByBranchId(UUID branchId);
 }

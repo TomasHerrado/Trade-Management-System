@@ -10,4 +10,6 @@ public interface CommerceService {
     List<CommerceResponse> getByUserId(UUID userId);
     CommerceResponse update(UUID id, CommerceRequest request);
     void deactivate(UUID id);
+    CommerceResponse activate(UUID id);
+    void delete(UUID id);
 }

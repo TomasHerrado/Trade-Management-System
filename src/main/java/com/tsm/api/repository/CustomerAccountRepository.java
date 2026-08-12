@@ -14,4 +14,6 @@ public interface CustomerAccountRepository extends JpaRepository<CustomerAccount
     // clientes con deuda pendiente en una sucursal
     @Query("SELECT ca FROM CustomerAccount ca WHERE ca.branch.id = :branchId AND ca.balance > 0")
     List<CustomerAccount> findDebtorsByBranchId(UUID branchId);
+
+    List<CustomerAccount> findByBranchId(UUID branchId);
 }

@@ -11,4 +11,5 @@ public interface PurchaseRepository extends JpaRepository<Purchase, UUID>{
     List<Purchase> findByBranchId(UUID branchId);
     List<Purchase> findBySupplierId(UUID supplierId);
     List<Purchase> findByBranchIdAndStatus(UUID branchId, PurchaseStatus status);
+    boolean existsByBranchId(UUID branchId);
 }

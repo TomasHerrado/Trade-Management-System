@@ -68,4 +68,25 @@ public class CommerceController {
         commerceService.deactivate(id);
         return ResponseEntity.noContent().build();
     }
+
+    // Solo OWNER puede reactivar su comercio
+    @PatchMapping("/{id}/activate")
+    public ResponseEntity<CommerceResponse> activate(
+            @PathVariable UUID id,
+            @RequestHeader("Authorization") String authHeader) {
+        UUID userId = jwtService.extractUserId(authHeader.substring(7));
+        authorizationService.validateOwner(userId, id);
+        return ResponseEntity.ok(commerceService.activate(id));
+    }
+
+    // Solo OWNER puede eliminar su comercio definitivamente
+    @DeleteMapping("/{id}/permanent")
+    public ResponseEntity<Void> delete(
+            @PathVariable UUID id,
+            @RequestHeader("Authorization") String authHeader) {
+        UUID userId = jwtService.extractUserId(authHeader.substring(7));
+        authorizationService.validateOwner(userId, id);
+        commerceService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }
