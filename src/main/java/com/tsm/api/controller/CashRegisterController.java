@@ -8,8 +8,11 @@ import com.tsm.api.security.JwtService;
 import com.tsm.api.service.CashRegisterService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,10 +55,17 @@ public class CashRegisterController {
     @GetMapping("/history")
     public ResponseEntity<List<CashRegisterResponse>> getHistory(
             @PathVariable UUID branchId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false, defaultValue = "3") int limit,
             @RequestHeader("Authorization") String authHeader) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
         authorizationService.validateBranchAccess(userId, branchId);
-        return ResponseEntity.ok(cashRegisterService.getHistoryByBranchId(branchId));
+        return ResponseEntity.ok(cashRegisterService.getHistoryByBranchId(
+                branchId,
+                from != null ? from.atStartOfDay() : null,
+                to != null ? to.atTime(23, 59, 59) : null,
+                limit));
     }
 
     @GetMapping("/{cashRegisterId}/movements")
@@ -67,5 +77,4 @@ public class CashRegisterController {
         authorizationService.validateBranchAccess(userId, branchId);
         return ResponseEntity.ok(cashRegisterService.getMovements(cashRegisterId));
     }
-
 }

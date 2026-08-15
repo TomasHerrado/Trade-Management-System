@@ -10,8 +10,11 @@ import com.tsm.api.repository.CashMovementRepository;
 import com.tsm.api.repository.CashRegisterRepository;
 import com.tsm.api.service.CashRegisterService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -89,8 +92,15 @@ public class CashRegisterServiceImpl implements CashRegisterService {
     }
 
     @Override
-    public List<CashRegisterResponse> getHistoryByBranchId(UUID branchId) {
-        return cashRegisterRepository.findByBranchId(branchId).stream()
+    public List<CashRegisterResponse> getHistoryByBranchId(UUID branchId, LocalDateTime from, LocalDateTime to, int limit) {
+        // Hibernate no puede inferir el tipo de un parámetro null en la consulta JPQL
+        // (eso disparaba un 500 al pedir el historial sin fechas), así que si no vino
+        // filtro usamos un rango bien amplio en vez de pasar null.
+        LocalDateTime effectiveFrom = from != null ? from : LocalDateTime.of(2000, 1, 1, 0, 0);
+        LocalDateTime effectiveTo = to != null ? to : LocalDateTime.now().plusYears(100);
+
+        Pageable pageable = PageRequest.of(0, limit);
+        return cashRegisterRepository.findHistory(branchId, effectiveFrom, effectiveTo, pageable).stream()
                 .map(this::toResponse)
                 .toList();
     }

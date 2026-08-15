@@ -1,6 +1,9 @@
 package com.tsm.api.service.impl;
 
+import com.tsm.api.dto.request.BulkPriceUpdateRequest;
+import com.tsm.api.dto.request.PriceUpdateTarget;
 import com.tsm.api.dto.request.ProductVariantRequest;
+import com.tsm.api.dto.response.BulkPriceUpdateResponse;
 import com.tsm.api.dto.response.ProductVariantResponse;
 import com.tsm.api.entity.*;
 import com.tsm.api.exception.BusinessException;
@@ -10,6 +13,9 @@ import com.tsm.api.service.ProductVariantService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +29,7 @@ public class ProductVariantServiceImpl implements ProductVariantService {
     private final StockMovementRepository stockMovementRepository;
     private final SaleItemRepository saleItemRepository;
     private final PurchaseItemRepository purchaseItemRepository;
+    private final ProductRepository productRepository;
 
     @Override
     @Transactional
@@ -111,6 +118,35 @@ public class ProductVariantServiceImpl implements ProductVariantService {
     public ProductVariant findById(UUID id) {
         return productVariantRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Variante no encontrada"));
+    }
+
+    @Override
+    @Transactional
+    public BulkPriceUpdateResponse bulkUpdateBySupplier(UUID commerceId, BulkPriceUpdateRequest request) {
+        List<Product> products = productRepository.findByCommerceIdAndSupplierId(commerceId, request.getSupplierId());
+        if (products.isEmpty()) {
+            throw new BusinessException("Ese proveedor no tiene productos cargados");
+        }
+
+        List<UUID> productIds = products.stream().map(Product::getId).toList();
+        List<ProductVariant> variants = productVariantRepository.findByProductIdIn(productIds);
+
+        // factor: 5% -> 1.05 | -10% -> 0.90
+        BigDecimal factor = BigDecimal.ONE.add(
+                request.getPercentage().divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP)
+        );
+
+        for (ProductVariant variant : variants) {
+            if (request.getApplyTo() == PriceUpdateTarget.PRICE || request.getApplyTo() == PriceUpdateTarget.BOTH) {
+                variant.setPrice(variant.getPrice().multiply(factor).setScale(2, RoundingMode.HALF_UP));
+            }
+            if (request.getApplyTo() == PriceUpdateTarget.COST || request.getApplyTo() == PriceUpdateTarget.BOTH) {
+                variant.setCost(variant.getCost().multiply(factor).setScale(2, RoundingMode.HALF_UP));
+            }
+        }
+        productVariantRepository.saveAll(variants);
+
+        return BulkPriceUpdateResponse.builder().updatedCount(variants.size()).build();
     }
 
     public ProductVariantResponse toResponse(ProductVariant variant) {

@@ -1,5 +1,7 @@
 package com.tsm.api.service;
+import com.tsm.api.dto.request.BulkPriceUpdateRequest;
 import com.tsm.api.dto.request.ProductVariantRequest;
+import com.tsm.api.dto.response.BulkPriceUpdateResponse;
 import com.tsm.api.dto.response.ProductVariantResponse;
 import java.util.List;
 import java.util.UUID;
@@ -11,4 +13,5 @@ public interface ProductVariantService {
     void deactivate(UUID id);
     ProductVariantResponse activate(UUID id);
     void delete(UUID id);
+    BulkPriceUpdateResponse bulkUpdateBySupplier(UUID commerceId, BulkPriceUpdateRequest request);
 }

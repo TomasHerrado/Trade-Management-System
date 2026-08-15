@@ -1,7 +1,9 @@
 package com.tsm.api.controller;
 
+import com.tsm.api.dto.request.BulkPriceUpdateRequest;
 import com.tsm.api.dto.request.ProductRequest;
 import com.tsm.api.dto.request.ProductVariantRequest;
+import com.tsm.api.dto.response.BulkPriceUpdateResponse;
 import com.tsm.api.dto.response.ProductResponse;
 import com.tsm.api.dto.response.ProductVariantResponse;
 import com.tsm.api.security.AuthorizationService;
@@ -40,10 +42,13 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<List<ProductResponse>> getByCommerce(
             @PathVariable UUID commerceId,
+            @RequestParam(required = false) UUID supplierId,
             @RequestHeader("Authorization") String authHeader) {
         UUID userId = jwtService.extractUserId(authHeader.substring(7));
         authorizationService.validateCommerceAccess(userId, commerceId);
-        return ResponseEntity.ok(productService.getByCommerceId(commerceId));
+        return ResponseEntity.ok(supplierId != null
+                ? productService.getByCommerceIdAndSupplier(commerceId, supplierId)
+                : productService.getByCommerceId(commerceId));
     }
 
     // Cualquier miembro con acceso al comercio puede ver un producto
@@ -100,6 +105,15 @@ public class ProductController {
         authorizationService.validateOwnerOrAdmin(userId, commerceId);
         productService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+    @PostMapping("/bulk-price-update")
+    public ResponseEntity<BulkPriceUpdateResponse> bulkPriceUpdate(
+            @PathVariable UUID commerceId,
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody BulkPriceUpdateRequest request) {
+        UUID userId = jwtService.extractUserId(authHeader.substring(7));
+        authorizationService.validateOwnerOrAdmin(userId, commerceId);
+        return ResponseEntity.ok(productVariantService.bulkUpdateBySupplier(commerceId, request));
     }
 
     // ── Variantes ──────────────────────────────────────────

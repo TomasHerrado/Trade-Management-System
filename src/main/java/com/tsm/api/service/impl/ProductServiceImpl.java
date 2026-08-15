@@ -25,6 +25,7 @@ public class ProductServiceImpl implements ProductService {
     private final PurchaseItemRepository purchaseItemRepository;
     private final CommerceServiceImpl commerceService;
     private final CategoryServiceImpl categoryService;
+    private final SupplierServiceImpl supplierService;
 
     @Override
     @Transactional
@@ -33,13 +34,13 @@ public class ProductServiceImpl implements ProductService {
             throw new BusinessException("Ya existe un producto con ese nombre");
         }
         Commerce commerce = commerceService.findById(commerceId);
-        Category category = null;
-        if (request.getCategoryId() != null) {
-            category = categoryService.findById(request.getCategoryId());
-        }
+        Category category = request.getCategoryId() != null ? categoryService.findById(request.getCategoryId()) : null;
+        Supplier supplier = resolveSupplier(request.getSupplierId(), commerceId); // nuevo
+
         Product product = Product.builder()
                 .commerce(commerce)
                 .category(category)
+                .supplier(supplier)          // nuevo
                 .name(request.getName())
                 .description(request.getDescription())
                 .imageUrl(request.getImageUrl())
@@ -59,6 +60,11 @@ public class ProductServiceImpl implements ProductService {
                 .map(this::toResponse)
                 .toList();
     }
+    public List<ProductResponse> getByCommerceIdAndSupplier(UUID commerceId, UUID supplierId) {
+        return productRepository.findByCommerceIdAndSupplierId(commerceId, supplierId).stream()
+                .map(this::toResponse)
+                .toList();
+    }
 
     @Override
     @Transactional
@@ -70,15 +76,24 @@ public class ProductServiceImpl implements ProductService {
             throw new BusinessException("Ya existe un producto con ese nombre");
         }
 
-        Category category = null;
-        if (request.getCategoryId() != null) {
-            category = categoryService.findById(request.getCategoryId());
-        }
+        Category category = request.getCategoryId() != null ? categoryService.findById(request.getCategoryId()) : null;
+        Supplier supplier = resolveSupplier(request.getSupplierId(), commerceId); // nuevo
+
         product.setName(request.getName());
         product.setDescription(request.getDescription());
         product.setImageUrl(request.getImageUrl());
         product.setCategory(category);
+        product.setSupplier(supplier); // nuevo
         return toResponse(productRepository.save(product));
+    }
+
+    private Supplier resolveSupplier(UUID supplierId, UUID commerceId) {
+        if (supplierId == null) return null;
+        Supplier supplier = supplierService.findById(supplierId);
+        if (!supplier.getCommerce().getId().equals(commerceId)) {
+            throw new BusinessException("El proveedor no pertenece a este comercio");
+        }
+        return supplier;
     }
 
     @Override
@@ -136,6 +151,8 @@ public class ProductServiceImpl implements ProductService {
                 .commerceId(product.getCommerce().getId())
                 .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
                 .categoryName(product.getCategory() != null ? product.getCategory().getName() : null)
+                .supplierId(product.getSupplier() != null ? product.getSupplier().getId() : null)
+                .supplierName(product.getSupplier() != null ? product.getSupplier().getName() : null)
                 .name(product.getName())
                 .description(product.getDescription())
                 .imageUrl(product.getImageUrl())

@@ -11,4 +11,5 @@ public interface ProductService {
     void deactivate(UUID id);
     ProductResponse activate(UUID id);
     void delete(UUID id);
+    List<ProductResponse> getByCommerceIdAndSupplier(UUID commerceId, UUID supplierId);
 }
